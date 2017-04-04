@@ -1,0 +1,7 @@
+name: Term View Display
+type: module
+core: 8.x
+dependencies:
+  - options
+  - taxonomy
+  - views
