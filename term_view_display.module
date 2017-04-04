@@ -1,0 +1,100 @@
+<?php
+
+/**
+ * @file
+ * Allows to change view display used for listing content tagged with a term
+ * and all its children.
+ */
+
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Views;
+
+/**
+ * @param $vocabulary_id
+ * @param string $label
+ * @return \Drupal\Core\Entity\EntityInterface|static
+ *
+ * @see term_view_display_install()
+ */
+function term_view_display_add_field($vocabulary_id, $label = 'Term view display') {
+  $field_storage = FieldStorageConfig::loadByName('taxonomy_term', 'term_view_display');
+  $field = FieldConfig::loadByName('taxonomy_term', $vocabulary_id, 'term_view_display');
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => $vocabulary_id,
+      'label' => $label,
+      'default_value' => '',
+    ]);
+    $field->save();
+
+    // Assign widget settings for the 'default' form mode.
+    entity_get_form_display('taxonomy_term', $vocabulary_id, 'default')
+      ->setComponent('term_view_display', [
+        'type' => 'options_select',
+      ])
+      ->save();
+
+    // Assign display settings for the default view mode.
+    entity_get_display('taxonomy_term', $vocabulary_id, 'default')
+      ->removeComponent('term_view_display')
+      ->save();
+  }
+
+  return $field;
+}
+
+/**
+ * Provide the allowed values callback for 'term_view_display' select field.
+ *
+ * @param \Drupal\Core\Field\FieldStorageDefinitionInterface $definition
+ *   The field storage definition.
+ * @param \Drupal\Core\Entity\FieldableEntityInterface|NULL $entity
+ *   (optional) The entity context if known, or NULL if the allowed values are
+ *   being collected without the context of a specific entity.
+ *
+ * @return array
+ *   The array of allowed values.
+ *
+ * @see callback_allowed_values_function()
+ */
+function term_view_display_allowed_values(FieldStorageDefinitionInterface $definition, FieldableEntityInterface $entity = NULL) {
+  $options = ['' => t('- Default -')];
+  $config = \Drupal::config('term_view_display.settings');
+
+  // Add all view displays to field options.
+  $view = Views::getView($config->get('term_view'));
+  $displays = $view->storage->get('display');
+  foreach ($displays as $display_id => $display_info) {
+    $options[$display_id] = $display_info['display_title'];
+  }
+
+  return $options;
+}
+
+/**
+ * Implements hook_views_pre_build().
+ */
+function term_view_display_views_pre_build(ViewExecutable $view) {
+  if ($view->id() == 'taxonomy_term') {
+    $term_id = reset($view->args);
+
+    /** @var \Drupal\taxonomy\TermStorage $term_storage */
+    $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+
+    /** @var \Drupal\taxonomy\Entity\Term $term */
+    foreach ($term_storage->loadAllParents($term_id) as $tid => $term) {
+      if ($term->term_view_display->value) {
+        $display = $term->term_view_display->value;
+      }
+    }
+
+    if (!empty($display)) {
+      $view->setDisplay($display);
+    }
+  }
+}

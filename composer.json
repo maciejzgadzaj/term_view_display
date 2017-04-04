@@ -1,0 +1,9 @@
+{
+    "name": "zgadzaj/term_view_display",
+    "type": "drupal-module",
+    "description": "Allows to change view display used for listing content tagged with a term and all its children.",
+    "homepage": "http://zgadzaj.com/",
+    "license": "GPL-2.0+",
+    "minimum-stability": "dev",
+    "require": {}
+}

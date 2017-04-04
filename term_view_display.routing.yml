@@ -1,0 +1,7 @@
+term_view_display.settings:
+  path: '/admin/config/content/term_view_display'
+  defaults:
+    _form: '\Drupal\term_view_display\Form\SettingsForm'
+    _title: 'Settings'
+  requirements:
+    _permission: 'administer site configuration'

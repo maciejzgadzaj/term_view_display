@@ -1,0 +1,10 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function term_view_display_install() {
+  foreach (taxonomy_vocabulary_get_names() as $vocabulary) {
+    term_view_display_add_field($vocabulary);
+  }
+}
